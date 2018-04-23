@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cmath>
 
 using namespace std;
 
@@ -10,7 +11,13 @@ struct Point {
 	double y;
 
 	bool operator==(const Point& p) { return x == p.x && y == p.y; }
+	double distanceToLine(Point a, Point b);
 };
+
+// расстояние от точки до прямой ab
+double Point::distanceToLine(Point a, Point b) {
+	return fabs((b.x - a.x) * (a.y - y) - (a.x - x) * (b.y - a.y)) / sqrt(pow(b.x - a.x, 2) + pow(b.y - a.y, 2));
+}
 
 // получение вектора из n точек
 vector<Point> getPoints(ifstream& f) {
@@ -142,6 +149,98 @@ vector<Point> andrewHull(vector<Point> points) {
 	return hull;
 }
 
+// разделение точек на два подмножества для алгоритмы быстрой выпуклой оболочки
+vector<Point> divide(vector<Point> points, Point p1, Point p2) {
+	vector<Point> hull;
+
+	if (points.size() == 0)
+		return hull;
+
+	if (points.size() == 1) {
+		hull.push_back(points[0]);
+		return hull;
+	}
+
+	Point maxDistancePoint = points[0];
+	size_t index = 0;
+	double distance = 0.0;
+	vector<Point> l1, l2;
+
+	for (size_t i = 0; i < points.size(); i++) {
+		if (points[i].distanceToLine(p1, p2) > distance) {
+			distance = points[i].distanceToLine(p1, p2);
+			maxDistancePoint = points[i];
+			index = i;
+		}
+	}
+
+	points.erase(points.begin() + index);
+
+	for (size_t i = 0; i < points.size(); i++) {
+		if (rotate(points[i], p1, maxDistancePoint) <= 0) {
+			l1.push_back(points[i]);
+		}
+		else if (rotate(points[i], maxDistancePoint, p2) <= 0) {
+			l2.push_back(points[i]);
+		}
+	}
+
+	vector<Point> bottom = divide(l1, p1, maxDistancePoint);
+	vector<Point> top = divide(l2, maxDistancePoint, p2);
+
+	hull.insert(hull.end(), bottom.begin(), bottom.end());
+	hull.push_back(maxDistancePoint);
+	hull.insert(hull.end(), top.begin(), top.end());
+
+	return hull;
+}
+
+// построение минимальной выпуклой оболчки по быстрому алгоритму
+vector<Point> quickHull(vector<Point> points) {
+	vector<Point> convexHull;
+
+	Point leftMostPoint = points[0];
+	Point rightMostPoint = points[0];
+
+	// находим самую левую и самую првую точки
+	for (size_t i = 1; i < points.size(); i++) {
+		if (points[i].x > rightMostPoint.x) {
+			rightMostPoint = points[i];
+		}
+		else if (points[i].x < leftMostPoint.x) {
+			leftMostPoint = points[i];
+		}
+	}
+
+	vector<Point> leftOfLine;
+	vector<Point> rightOfLine;
+
+	// разделяем на два подмножества - выше прямой и ниже
+	for (size_t i = 0; i < points.size(); i++) {
+		if (points[i] == rightMostPoint || points[i] == leftMostPoint)
+			continue;
+
+		if (rotate(points[i], leftMostPoint, rightMostPoint) <= 0) {
+			leftOfLine.push_back(points[i]);
+		}
+		else {
+			rightOfLine.push_back(points[i]);
+		}
+	}
+
+	convexHull.push_back(leftMostPoint);
+
+	vector<Point> hull = divide(leftOfLine, leftMostPoint, rightMostPoint);
+	convexHull.insert(convexHull.end(), hull.begin(), hull.end());
+
+	convexHull.push_back(rightMostPoint);
+
+	hull = divide(rightOfLine, rightMostPoint, leftMostPoint);
+	convexHull.insert(convexHull.end(), hull.begin(), hull.end());
+
+	return convexHull;
+}
+
 int main() {
 	string path;
 
@@ -173,4 +272,8 @@ int main() {
 	vector<Point> andrewPoints = andrewHull(points);
 	cout << "AndrewHull points: " << endl;
 	printPoints(andrewPoints);
+
+	vector<Point> quickPoints = quickHull(points);
+	cout << "QuickHull points: " << endl;
+	printPoints(quickPoints);
 }
