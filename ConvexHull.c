@@ -91,6 +91,54 @@ point_t* graham_hull(point_t *points, int n, int *hull_n) {
 	return S;
 }
 
+// построение минимальной выпуклой оболчки по алгоритму Джарвиса
+point_t* jarvis_hull(point_t *points, int n, int *hull_n) {
+	points = copy_points(points, n); // копируем точки
+
+	// определяем самую левую точку
+	for (int i = 1; i < n; i++) {
+		if (points[i].x < points[0].x) {
+			point_t tmp = points[i];
+			points[i] = points[0];
+			points[0] = tmp;
+		}
+	}
+
+	point_t *H = (point_t *) malloc(n * sizeof(point_t));
+
+	*hull_n = 0;
+	H[(*hull_n)++] = points[0];
+
+	for (int i = 1; i < n; i++)
+		points[i - 1] = points[i];
+
+	points[n - 1] = H[0];
+
+	while (1) {
+		int right = 0;
+
+		for (int i = 1; i < n; i++) {
+			if (rotate(H[*hull_n - 1], points[right], points[i]) < 0)
+        		right = i;
+		}
+
+		if (points[right].x == H[0].x && points[right].y == H[0].y)
+			break;
+		else {
+			H[(*hull_n)++] = points[right];
+
+			for (int i = right + 1; i < n; i++)
+				points[i - 1] = points[i];
+			
+			n--;
+		}
+	}
+
+	free(points);
+
+	return H;
+}
+
 int main() {
 	char path[100];
 	printf("Enter path: ");
@@ -115,6 +163,12 @@ int main() {
 	printf("Graham hull points:\n");
 	print_points(graham_points, graham_n);
 
+	int jarvis_n;
+	point_t *jarvis_points = jarvis_hull(points, n, &jarvis_n);
+	printf("Jarvis hull points:\n");
+	print_points(jarvis_points, jarvis_n);
+
 	free(points);
 	free(graham_points);
+	free(jarvis_points);
 }

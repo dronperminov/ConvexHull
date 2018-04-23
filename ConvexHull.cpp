@@ -70,6 +70,40 @@ vector<Point> grahamHull(vector<Point> points) {
 	return S;
 }
 
+// построение минимальной выпуклой оболчки по алгоритму Джарвиса
+vector<Point> jarvisHull(vector<Point> points) {
+	size_t n = points.size();
+
+	// определяем самую левую точку
+	for (size_t i = 1; i < n; i++)
+		if (points[i].x < points[0].x)
+			swap(points[i], points[0]);
+
+	vector<Point> H;
+	H.push_back(points[0]);
+
+	points.erase(points.begin());
+	points.push_back(H[0]);
+
+	while (1) {
+		int right = 0;
+
+		for (size_t i = 1; i < points.size(); i++) {
+			if (rotate(H[H.size() - 1], points[right], points[i]) < 0)
+				right = i;
+		}
+
+		if (points[right] == H[0])
+			break;
+		else {
+			H.push_back(points[right]);
+			points.erase(points.begin() + right);
+		}
+	}
+
+	return H;
+}
+
 int main() {
 	string path;
 
@@ -93,4 +127,8 @@ int main() {
 	vector<Point> grahamPoints = grahamHull(points);
 	cout << "GrahamHull points: " << endl;
 	printPoints(grahamPoints);
+
+	vector<Point> jarvisPoints = jarvisHull(points);
+	cout << "JarvisHull points: " << endl;
+	printPoints(jarvisPoints);
 }
