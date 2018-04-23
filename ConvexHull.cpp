@@ -104,6 +104,44 @@ vector<Point> jarvisHull(vector<Point> points) {
 	return H;
 }
 
+// построение минимальной выпуклой оболчки по алгоритму Эндрю
+vector<Point> andrewHull(vector<Point> points) {
+	size_t n = points.size();
+
+	vector<Point> hull;
+
+	// сортируем точки по удалённости
+	for (size_t i = 0; i < n; i++) {
+		for (size_t j = 0; j < n - 1; j++) {
+			if ((points[j].x >= points[j + 1].x) && (points[j].x != points[j + 1].x || points[j].y >= points[j + 1].y)) {
+				Point p = points[j];
+				points[j] = points[j + 1];
+				points[j + 1] = p;
+			}
+		}
+	}
+
+	// строим нижнюю часть оболочки
+	for (size_t i = 0; i < n; i++) {
+		while (hull.size() >= 2 && rotate(hull[hull.size() - 2], hull[hull.size() - 1], points[i]) <= 0)
+			hull.pop_back();
+
+		hull.push_back(points[i]);
+	}
+
+	// строим верхнюю часть оболочки
+	for (size_t i = n - 1, t = hull.size() + 1; i > 0; i--) {
+		while (hull.size() >= t && rotate(hull[hull.size() - 2], hull[hull.size() - 1], points[i - 1]) <= 0)
+			hull.pop_back();
+
+		hull.push_back(points[i - 1]);
+	}
+
+	hull.pop_back();
+
+	return hull;
+}
+
 int main() {
 	string path;
 
@@ -131,4 +169,8 @@ int main() {
 	vector<Point> jarvisPoints = jarvisHull(points);
 	cout << "JarvisHull points: " << endl;
 	printPoints(jarvisPoints);
+
+	vector<Point> andrewPoints = andrewHull(points);
+	cout << "AndrewHull points: " << endl;
+	printPoints(andrewPoints);
 }

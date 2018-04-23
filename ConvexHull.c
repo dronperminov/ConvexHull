@@ -139,6 +139,47 @@ point_t* jarvis_hull(point_t *points, int n, int *hull_n) {
 	return H;
 }
 
+// построение минимальной выпуклой оболчки по алгоритму Эндрю
+point_t* andrew_hull(point_t *points, int n, int *hull_n) {
+	points = copy_points(points, n);
+
+	point_t *hull = (point_t *) malloc(2 * n * sizeof(point_t));
+	*hull_n = 0;
+
+	// сортируем точки по удалённости
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n - 1; j++) {
+			if ((points[j].x >= points[j + 1].x) && (points[j].x != points[j + 1].x || points[j].y >= points[j + 1].y)) {
+				point_t p = points[j];
+				points[j] = points[j + 1];
+				points[j + 1] = p;
+			}
+		}
+	}
+
+	// строим нижнюю часть оболочки
+	for (int i = 0; i < n; i++) {
+		while (*hull_n >= 2 && rotate(hull[*hull_n - 2], hull[*hull_n - 1], points[i]) <= 0)
+			(*hull_n)--;
+
+		hull[(*hull_n)++] = points[i];
+	}
+
+	// строим верхнюю часть оболочки
+	for (int i = n - 1, t = *hull_n + 1; i > 0; i--) {
+		while (*hull_n >= t && rotate(hull[*hull_n - 2], hull[*hull_n - 1], points[i - 1]) <= 0)
+			(*hull_n)--;
+
+		hull[(*hull_n)++] = points[i - 1];
+	}
+
+	(*hull_n)--;
+
+	free(points);
+
+	return hull;
+}
+
 int main() {
 	char path[100];
 	printf("Enter path: ");
@@ -168,7 +209,13 @@ int main() {
 	printf("Jarvis hull points:\n");
 	print_points(jarvis_points, jarvis_n);
 
+	int andrew_n;
+	point_t *andrew_points = andrew_hull(points, n, &andrew_n);
+	printf("Andrew hull points:\n");
+	print_points(andrew_points, andrew_n);
+
 	free(points);
 	free(graham_points);
 	free(jarvis_points);
+	free(andrew_points);
 }
